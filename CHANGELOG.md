@@ -3,6 +3,13 @@
 이 프로젝트의 모든 주요 변경 사항을 기록합니다.
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전(SemVer)](https://semver.org/lang/ko/)을 따릅니다.
 
+## [1.4.0] - 2026-06-23
+### Added
+- **Windows 설치 프로그램(Setup.exe)** 추가 (NSIS 기반)
+  - 시작 메뉴·바탕화면 바로가기 생성
+  - Windows "앱 및 기능"에 등록, **제거(언인스톨)** 지원
+  - 관리자 권한 불필요(사용자 단위 설치, `%LOCALAPPDATA%\Programs\HtmlSlideEditor`)
+
 ## [1.3.0] - 2026-06-23
 ### Added
 - 프로그램 상단에 **버전 배지** 표시, 클릭 시 **버전 이력 모달**(앱 내 보기)
@@ -27,6 +34,7 @@
 - 원본 디자인·이미지 보존, 편집본 저장(`_편집본.html`), 전체 미리보기
 - 단일 실행 EXE (WebView2 내장, 무설치)
 
+[1.4.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.1.0

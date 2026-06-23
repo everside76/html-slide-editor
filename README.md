@@ -1,6 +1,6 @@
 # HTML Slide Editor
 
-![version](https://img.shields.io/badge/version-1.3.0-C0392B) · 현재 버전 **v1.3.0** · [변경 이력](CHANGELOG.md)
+![version](https://img.shields.io/badge/version-1.4.0-C0392B) · 현재 버전 **v1.4.0** · [변경 이력](CHANGELOG.md)
 
 슬라이드/페이지 단위로 구성된 **HTML 보고서를 페이지별로 편집**하는 Windows 데스크톱 에디터입니다.
 오른쪽에 보고서가 실제 모양 그대로 렌더링되고, 화면의 글자를 직접 클릭해 수정(WYSIWYG)할 수 있습니다.
@@ -28,7 +28,17 @@
 
 페이지 폭은 1280px 기준으로 디자인된 덱(예: 1280×720)에 최적화되어 있으며, 창 크기에 맞춰 자동 축소 표시됩니다.
 
-## 사용법 (배포된 EXE)
+## 설치 (권장)
+
+`HtmlSlideEditor-Setup-x.y.z.exe` 를 실행하면 설치됩니다.
+
+- **관리자 권한 불필요** (사용자 단위 설치: `%LOCALAPPDATA%\Programs\HtmlSlideEditor`)
+- **시작 메뉴 + 바탕화면 바로가기** 자동 생성
+- Windows **설정 → 앱 → 설치된 앱**에 등록되어 언제든 **제거** 가능
+
+## 사용법 (포터블 EXE)
+
+설치 없이 쓰려면 `HtmlSlideEditor.exe` 만 단독으로 실행해도 됩니다.
 
 1. `HtmlSlideEditor.exe` 더블클릭 — 설치 불필요, 동반 파일 불필요
 2. 편집할 HTML 파일을 창으로 드래그하거나 `📂 HTML 파일 열기` 로 선택
@@ -51,6 +61,13 @@
 ```
 스크립트가 NuGet에서 WebView2 SDK를 받아 `editor.html` 과 DLL을 EXE에 내장해 `HtmlSlideEditor.exe` 를 생성합니다.
 
+**설치 프로그램 빌드** (포터블 EXE 빌드 후 실행)
+```powershell
+.\build.ps1
+.\build-installer.ps1
+```
+`build-installer.ps1` 이 NSIS(포터블)를 받아 `installer.nsi` 를 컴파일해 `HtmlSlideEditor-Setup-x.y.z.exe` 를 생성합니다.
+
 ## 구성
 
 | 파일 | 설명 |
@@ -58,7 +75,10 @@
 | `editor.html` | 에디터 앱 본체(단독 HTML로도 브라우저에서 열어 사용 가능) |
 | `src/App.cs` | EXE 셸 (WinForms + WebView2, DLL/HTML을 리소스로 내장·자동 추출) |
 | `build.ps1` | WebView2 SDK 다운로드 + `csc.exe` 컴파일 스크립트 |
-| `HtmlSlideEditor.exe` | 빌드 산출물(단일 실행 파일) |
+| `installer.nsi` | NSIS 설치 프로그램 스크립트 |
+| `build-installer.ps1` | NSIS 다운로드 + 설치 프로그램(Setup.exe) 빌드 |
+| `HtmlSlideEditor.exe` | 빌드 산출물(포터블 단일 실행 파일) |
+| `HtmlSlideEditor-Setup-x.y.z.exe` | 설치 프로그램 |
 
 > `editor.html` 만 따로 웹브라우저(Chrome/Edge)로 열어도 동일하게 동작합니다. EXE는 전용 앱 창으로 띄워주는 셸입니다.
 

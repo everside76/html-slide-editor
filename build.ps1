@@ -1,4 +1,4 @@
-<#
+﻿<#
   build.ps1 — editor.html + WebView2 DLL을 단일 EXE로 컴파일합니다.
   요구사항: Windows + .NET Framework 4.x (csc.exe) + WebView2 런타임(Win10/11 기본 포함)
   사용법:   PowerShell에서  .\build.ps1
@@ -35,7 +35,7 @@ Write-Host '컴파일 중...'
 $iconArg = @()
 if (Test-Path $ico) { $iconArg = @("/win32icon:$ico") }
 $cscArgs = @(
-    '/target:winexe', '/platform:x64', '/optimize+', '/nologo',
+    '/target:winexe', '/platform:x64', '/optimize+', '/nologo', '/codepage:65001',
     "/out:$out"
 ) + $iconArg + @(
     '/r:System.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll', '/r:System.Core.dll',
