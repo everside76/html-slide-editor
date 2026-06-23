@@ -10,6 +10,7 @@ $wv2   = Join-Path $build 'wv2'
 $out   = Join-Path $root 'HtmlSlideEditor.exe'
 $html  = Join-Path $root 'editor.html'
 $src   = Join-Path $root 'src\App.cs'
+$ico   = Join-Path $root 'icon.ico'
 
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path $csc)) { throw ".NET Framework C# 컴파일러(csc.exe)를 찾을 수 없습니다: $csc" }
@@ -31,9 +32,12 @@ if (-not (Test-Path $core)) {
 
 # 2) 컴파일 (HTML + DLL 3종을 EXE 리소스로 내장)
 Write-Host '컴파일 중...'
+$iconArg = @()
+if (Test-Path $ico) { $iconArg = @("/win32icon:$ico") }
 $cscArgs = @(
     '/target:winexe', '/platform:x64', '/optimize+', '/nologo',
-    "/out:$out",
+    "/out:$out"
+) + $iconArg + @(
     '/r:System.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll', '/r:System.Core.dll',
     "/r:$core", "/r:$wf",
     "/resource:$core,Microsoft.Web.WebView2.Core.dll",

@@ -112,6 +112,10 @@ namespace HtmlSlideEditor
             WindowState = FormWindowState.Maximized;
             BackColor = System.Drawing.Color.FromArgb(31, 35, 48);
 
+            // 제목표시줄/작업표시줄 아이콘 = EXE에 내장된 아이콘
+            try { this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
+            catch { }
+
             web = new WebView2();
             web.Dock = DockStyle.Fill;
             Controls.Add(web);
