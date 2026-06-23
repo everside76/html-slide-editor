@@ -173,6 +173,22 @@
       <span class="sep"></span>
       <button class="tb txt" id="btnLink" title="링크 삽입">🔗 링크</button>
       <button class="tb txt" id="btnClear" title="서식 지우기">⌫ 서식지우기</button>
+      <span class="sep"></span>
+      <button class="tb txt" data-act="tbl" title="표 삽입 (행x열)">⊞ 표삽입</button>
+      <button class="tb txt" data-act="rowAbove" title="위에 행 추가">＋행↑</button>
+      <button class="tb txt" data-act="rowBelow" title="아래에 행 추가">＋행↓</button>
+      <button class="tb txt" data-act="rowDel" title="현재 행 삭제">－행</button>
+      <button class="tb txt" data-act="colLeft" title="왼쪽에 열 추가">＋열←</button>
+      <button class="tb txt" data-act="colRight" title="오른쪽에 열 추가">＋열→</button>
+      <button class="tb txt" data-act="colDel" title="현재 열 삭제">－열</button>
+      <label class="color" title="셀 배경색"><span>셀</span><input type="color" id="cellColor" value="#fff3d6"></label>
+      <button class="tb txt" data-act="tblDel" title="표 전체 삭제">✖표</button>
+      <span class="sep"></span>
+      <button class="tb txt" data-act="imgIns" title="이미지 삽입(커서 위치)">🖼 삽입</button>
+      <button class="tb txt" data-act="imgRep" title="선택한 이미지 교체">🔄 교체</button>
+      <button class="tb" data-act="imgBig" title="이미지 크게">🔍＋</button>
+      <button class="tb" data-act="imgSmall" title="이미지 작게">🔍－</button>
+      <button class="tb txt" data-act="imgDel" title="선택한 이미지 삭제">🗑 이미지</button>
       <div class="right">
         <button class="btn ghost" id="btnMode">&lt;/&gt; 소스 편집</button>
       </div>
@@ -204,11 +220,14 @@
 </div>
 
 <input type="file" id="fileInput" accept=".html,.htm,text/html" style="display:none">
+<input type="file" id="imgInput" accept="image/*" style="display:none">
+<div id="toast" style="position:fixed;left:50%;bottom:72px;transform:translateX(-50%);background:#20242c;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.4);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;"></div>
 
 <script>
 "use strict";
 // ====== 상태 ======
 let reportDoc=null, pageEls=[], currentIndex=-1, mode='wysiwyg', dirty=false, fileName='report.html', savedRange=null;
+let selectedImg=null, imgMode='insert', toastTimer=null;
 
 // ====== DOM 참조 ======
 const $=id=>document.getElementById(id);
@@ -297,6 +316,8 @@ function renderPreview(){
     '.deck{padding:0!important;gap:0!important;align-items:flex-start!important;}'+
     '[contenteditable]:focus{outline:2px dashed rgba(192,57,43,.5);outline-offset:5px;}'+
     '[contenteditable]{cursor:text;}'+
+    'img{cursor:pointer;}'+
+    '.__imgsel{outline:3px solid #C0392B!important;outline-offset:2px;}'+
     '</style></head><body><div class="deck">'+pageHTML+'</div></body></html>';
   frame.onload=onFrameLoad;
   frame.srcdoc=docHTML;
@@ -305,12 +326,14 @@ function onFrameLoad(){
   const d=frame.contentDocument; if(!d) return;
   const deck=d.querySelector('.deck');
   const page=deck?deck.firstElementChild:null;
+  selectedImg=null;
   if(page){
     const slide=page.matches('.slide')?page:(page.querySelector('.slide')||page);
     slide.setAttribute('contenteditable','true');
     slide.setAttribute('spellcheck','false');
     d.addEventListener('input',markDirty);
     d.addEventListener('selectionchange',saveSel);
+    d.addEventListener('click',onFrameClick);
     d.execCommand('styleWithCSS',false,true);
   }
   fitScale();
@@ -341,9 +364,13 @@ function commitCurrent(){
     const deck=d.querySelector('.deck');
     const page=deck?deck.firstElementChild:null;
     if(!page) return;
+    Array.prototype.forEach.call(d.querySelectorAll('.__imgsel'),function(el){ el.classList.remove('__imgsel'); });
+    selectedImg=null;
     html=page.outerHTML
       .replace(/\scontenteditable="[^"]*"/gi,'')
-      .replace(/\sspellcheck="[^"]*"/gi,'');
+      .replace(/\sspellcheck="[^"]*"/gi,'')
+      .replace(/\sclass="__imgsel"/gi,'')
+      .replace(/(\sclass="[^"]*?)\s*__imgsel\s*([^"]*")/gi,'$1$2');
   } else {
     html=sourceArea.value;
   }
@@ -385,6 +412,140 @@ $('btnLink').addEventListener('click',()=>{
 });
 $('btnClear').addEventListener('mousedown',e=>e.preventDefault());
 $('btnClear').addEventListener('click',()=>exec('removeFormat'));
+
+// ====== 표 / 이미지 편집 ======
+function toast(msg){
+  const t=$('toast'); if(!t) return;
+  t.textContent=msg; t.style.opacity='1';
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.style.opacity='0'; },1700);
+}
+function selNode(){
+  if(savedRange) return savedRange.startContainer;
+  const d=frame.contentDocument; const s=(d&&d.getSelection)?d.getSelection():null;
+  return (s&&s.rangeCount)?s.getRangeAt(0).startContainer:null;
+}
+function up(node,sel){
+  let n=node; if(n&&n.nodeType===3) n=n.parentNode;
+  while(n&&n.nodeType===1){ if(n.matches&&n.matches(sel)) return n; n=n.parentNode; }
+  return null;
+}
+function tableCtx(){
+  const cell=up(selNode(),'td,th'); if(!cell) return null;
+  const table=up(cell,'table'); if(!table) return null;
+  const row=cell.parentNode;
+  const idx=Array.prototype.indexOf.call(row.children,cell);
+  return {cell:cell,row:row,table:table,idx:idx};
+}
+function tblRow(after){
+  const c=tableCtx(); if(!c){ toast('표 안의 셀에 커서를 두세요'); return; }
+  const nr=c.row.cloneNode(true);
+  Array.prototype.forEach.call(nr.children,function(td){ td.innerHTML='&nbsp;'; td.style.background=''; });
+  if(after) c.row.after(nr); else c.row.before(nr);
+  markDirty();
+}
+function tblRowDel(){
+  const c=tableCtx(); if(!c){ toast('표 안의 셀에 커서를 두세요'); return; }
+  if(c.table.rows.length<=1){ toast('행이 하나뿐이라 삭제할 수 없습니다'); return; }
+  c.row.remove(); markDirty();
+}
+function tblCol(after){
+  const c=tableCtx(); if(!c){ toast('표 안의 셀에 커서를 두세요'); return; }
+  const d=frame.contentDocument;
+  Array.prototype.forEach.call(c.table.rows,function(r){
+    const ref=r.children[c.idx]||r.children[r.children.length-1];
+    const nc=d.createElement(ref?ref.tagName:'TD');
+    if(ref&&ref.className) nc.className=ref.className;
+    nc.innerHTML='&nbsp;';
+    if(!ref) r.appendChild(nc);
+    else if(after) ref.after(nc); else ref.before(nc);
+  });
+  markDirty();
+}
+function tblColDel(){
+  const c=tableCtx(); if(!c){ toast('표 안의 셀에 커서를 두세요'); return; }
+  if(c.row.children.length<=1){ toast('열이 하나뿐이라 삭제할 수 없습니다'); return; }
+  Array.prototype.forEach.call(c.table.rows,function(r){ if(r.children[c.idx]) r.children[c.idx].remove(); });
+  markDirty();
+}
+function tblDel(){
+  const c=tableCtx(); if(!c){ toast('표 안의 셀에 커서를 두세요'); return; }
+  if(confirm('이 표 전체를 삭제할까요?')){ c.table.remove(); markDirty(); }
+}
+function cellColor(color){
+  const c=tableCtx(); if(!c){ toast('표 안의 셀에 커서를 두세요'); return; }
+  c.cell.style.background=color; markDirty();
+}
+function tblInsert(){
+  const spec=prompt('표 크기 (전체 행수 x 열수). 예: 4x3','4x3'); if(!spec) return;
+  const m=String(spec).toLowerCase().split(/[^0-9]+/).filter(Boolean);
+  let rows=parseInt(m[0],10), cols=parseInt(m[1],10);
+  if(!rows||!cols){ toast('형식이 올바르지 않습니다 (예: 4x3)'); return; }
+  rows=Math.min(Math.max(rows,1),40); cols=Math.min(Math.max(cols,1),15);
+  let h='<table><thead><tr>';
+  for(let j=0;j<cols;j++) h+='<th>제목'+(j+1)+'</th>';
+  h+='</tr></thead><tbody>';
+  for(let i=0;i<rows-1;i++){ h+='<tr>'; for(let j=0;j<cols;j++) h+='<td>&nbsp;</td>'; h+='</tr>'; }
+  h+='</tbody></table><p><br></p>';
+  exec('insertHTML',h);
+}
+// --- 이미지 ---
+function onFrameClick(e){
+  const t=e.target;
+  if(t&&t.tagName==='IMG') markImg(t); else markImg(null);
+}
+function markImg(img){
+  const d=frame.contentDocument; if(!d) return;
+  Array.prototype.forEach.call(d.querySelectorAll('.__imgsel'),function(el){ el.classList.remove('__imgsel'); });
+  selectedImg=(img&&img.tagName==='IMG')?img:null;
+  if(selectedImg){ selectedImg.classList.add('__imgsel'); toast('이미지 선택됨 · 교체/크기/삭제 가능'); }
+}
+function pickImage(m){
+  if(m==='replace'&&!selectedImg){ toast('먼저 교체할 이미지를 클릭하세요'); return; }
+  imgMode=m; const inp=$('imgInput'); inp.value=''; inp.click();
+}
+$('imgInput').addEventListener('change',function(e){
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=function(){
+    const url=String(r.result);
+    if(imgMode==='replace'&&selectedImg){ selectedImg.src=url; markDirty(); toast('이미지를 교체했습니다'); }
+    else { exec('insertHTML','<img src="'+url+'" style="max-width:100%;height:auto;">'); toast('이미지를 삽입했습니다'); }
+  };
+  r.readAsDataURL(f);
+});
+function imgScale(factor){
+  if(!selectedImg){ toast('먼저 이미지를 클릭하세요'); return; }
+  const cur=selectedImg.offsetWidth||selectedImg.naturalWidth||200;
+  selectedImg.style.width=Math.max(20,Math.round(cur*factor))+'px';
+  selectedImg.style.height='auto';
+  markDirty();
+}
+function imgDel(){
+  if(!selectedImg){ toast('먼저 이미지를 클릭하세요'); return; }
+  selectedImg.remove(); selectedImg=null; markDirty(); toast('이미지를 삭제했습니다');
+}
+// --- 툴바(표/이미지) 디스패치 ---
+$('toolbar').addEventListener('mousedown',function(e){ const b=e.target.closest('[data-act]'); if(b) e.preventDefault(); });
+$('toolbar').addEventListener('click',function(e){
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  switch(b.dataset.act){
+    case 'tbl': tblInsert(); break;
+    case 'rowAbove': tblRow(false); break;
+    case 'rowBelow': tblRow(true); break;
+    case 'rowDel': tblRowDel(); break;
+    case 'colLeft': tblCol(false); break;
+    case 'colRight': tblCol(true); break;
+    case 'colDel': tblColDel(); break;
+    case 'tblDel': tblDel(); break;
+    case 'imgIns': pickImage('insert'); break;
+    case 'imgRep': pickImage('replace'); break;
+    case 'imgBig': imgScale(1.12); break;
+    case 'imgSmall': imgScale(0.9); break;
+    case 'imgDel': imgDel(); break;
+  }
+});
+$('cellColor').addEventListener('input',function(e){ cellColor(e.target.value); });
 
 // ====== 소스 편집 토글 ======
 $('btnMode').addEventListener('click',()=>{
