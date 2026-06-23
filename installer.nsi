@@ -7,7 +7,7 @@ Unicode true
 !define APPNAME     "HTML Slide Editor"
 !define APPNAMEKR   "HTML 보고서 에디터"
 !define COMPANY     "everside76"
-!define VERSION     "1.4.0"
+!define VERSION     "1.5.0"
 !define EXENAME     "HtmlSlideEditor.exe"
 !define UNINSTKEY   "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPID}"
 
@@ -19,10 +19,10 @@ InstallDirRegKey HKCU "Software\${APPID}" "InstallDir"
 SetCompressor /SOLID lzma
 BrandingText "${APPNAMEKR} v${VERSION}"
 
-VIProductVersion "1.4.0.0"
+VIProductVersion "1.5.0.0"
 VIAddVersionKey "ProductName"     "${APPNAME}"
 VIAddVersionKey "ProductVersion"  "${VERSION}"
-VIAddVersionKey "FileVersion"     "1.4.0.0"
+VIAddVersionKey "FileVersion"     "1.5.0.0"
 VIAddVersionKey "CompanyName"     "${COMPANY}"
 VIAddVersionKey "LegalCopyright"  "MIT License"
 VIAddVersionKey "FileDescription" "${APPNAME} Setup"

@@ -3,6 +3,14 @@
 이 프로젝트의 모든 주요 변경 사항을 기록합니다.
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전(SemVer)](https://semver.org/lang/ko/)을 따릅니다.
 
+## [1.5.0] - 2026-06-23
+### Added
+- **설정(⚙) 메뉴** 추가 — 편집본 저장 위치 지정
+  - "지정한 폴더에 자동 저장" 또는 "저장할 때 위치 선택(저장 대화상자)"
+  - 설정은 `%LOCALAPPDATA%\HtmlSlideEditor\settings.json` 에 저장
+- **자동 업데이트** 추가 — GitHub Releases에서 최신 버전 확인 → 새 버전이면 설치 파일을 내려받아 자동 설치(앱 종료 후 교체)
+  - 실행 시 조용히 새 버전 확인, 설정 창에서 수동 확인도 가능
+
 ## [1.4.0] - 2026-06-23
 ### Added
 - **Windows 설치 프로그램(Setup.exe)** 추가 (NSIS 기반)
@@ -34,6 +42,7 @@
 - 원본 디자인·이미지 보존, 편집본 저장(`_편집본.html`), 전체 미리보기
 - 단일 실행 EXE (WebView2 내장, 무설치)
 
+[1.5.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.5.0
 [1.4.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.2.0

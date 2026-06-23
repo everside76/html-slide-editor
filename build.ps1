@@ -38,7 +38,7 @@ $cscArgs = @(
     '/target:winexe', '/platform:x64', '/optimize+', '/nologo', '/codepage:65001',
     "/out:$out"
 ) + $iconArg + @(
-    '/r:System.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll', '/r:System.Core.dll',
+    '/r:System.dll', '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll', '/r:System.Core.dll', '/r:System.Web.Extensions.dll',
     "/r:$core", "/r:$wf",
     "/resource:$core,Microsoft.Web.WebView2.Core.dll",
     "/resource:$wf,Microsoft.Web.WebView2.WinForms.dll",

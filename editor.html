@@ -41,6 +41,21 @@
   .veritem .vd{font-size:12px;color:var(--muted);}
   .veritem ul{margin:0;padding-left:18px;}
   .veritem li{font-size:13px;color:var(--txt);line-height:1.55;margin-bottom:3px;}
+  .setsec{padding:16px 0;border-bottom:1px solid var(--line);}
+  .setsec:last-child{border-bottom:0;}
+  .seth{font-size:14px;font-weight:800;color:#fff;margin-bottom:11px;}
+  .setopt{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt);padding:5px 0;cursor:pointer;}
+  .setopt input{accent-color:var(--red);width:15px;height:15px;}
+  .setfolder{display:flex;align-items:center;gap:10px;margin:6px 0 2px 24px;}
+  .folderpath{font-size:12.5px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+    border-radius:7px;padding:7px 10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sethint{font-size:12px;color:var(--warn);margin-top:9px;line-height:1.5;}
+  .setrow{display:flex;align-items:center;gap:12px;}
+  #curVerText{font-size:13px;color:var(--txt);font-weight:700;}
+  .updbox{margin-top:12px;font-size:13px;color:var(--txt);line-height:1.6;}
+  .updbox .notes{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+    margin-top:8px;font-size:12.5px;color:var(--muted);white-space:pre-wrap;max-height:170px;overflow:auto;}
+  .updbox .doupd{margin-top:12px;}
   .btn{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:8px;
     padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
   .btn:hover{border-color:#56607a;background:#353c4f;}
@@ -135,6 +150,7 @@
   <span class="fname" id="fnameLabel"></span>
   <span class="dirty" id="dirtyTag">● 저장 안 된 변경사항</span>
   <span class="spacer" style="flex:1"></span>
+  <button class="btn ghost" id="btnSettings" title="설정">⚙ 설정</button>
   <button class="btn ghost" id="btnOpen2" style="display:none">📂 다른 파일 열기</button>
   <button class="btn ghost" id="btnPreviewAll" style="display:none">🖥 전체 미리보기</button>
   <button class="btn primary" id="btnSave" style="display:none">💾 편집본 저장</button>
@@ -247,6 +263,27 @@
   <div class="modal">
     <div class="modal-h"><span>버전 이력</span><button id="logClose" title="닫기">✕</button></div>
     <div class="modal-b" id="logBody"></div>
+  </div>
+</div>
+
+<!-- 설정 모달 -->
+<div class="modal-ov" id="setModal">
+  <div class="modal">
+    <div class="modal-h"><span>설정</span><button id="setClose" title="닫기">✕</button></div>
+    <div class="modal-b">
+      <div class="setsec">
+        <div class="seth">💾 편집본 저장 위치</div>
+        <label class="setopt"><input type="radio" name="saveMode" value="ask"><span>저장할 때 위치 선택 (저장 대화상자 표시)</span></label>
+        <label class="setopt"><input type="radio" name="saveMode" value="folder"><span>지정한 폴더에 자동 저장</span></label>
+        <div class="setfolder"><span id="setFolderPath" class="folderpath">(폴더 미지정)</span><button class="btn" id="btnPickFolder">폴더 선택…</button></div>
+        <div class="sethint" id="saveHostHint"></div>
+      </div>
+      <div class="setsec">
+        <div class="seth">⬆ 업데이트</div>
+        <div class="setrow"><span id="curVerText">현재 버전 v—</span><button class="btn" id="btnCheckUpd">업데이트 확인</button></div>
+        <div class="updbox" id="updBox"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -634,8 +671,8 @@ $('btnSave').addEventListener('click',()=>{
   a.href=URL.createObjectURL(blob);
   a.download=fileName.replace(/\.html?$/i,'')+'_편집본.html';
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-  dirty=false; updateDirty();
+  setTimeout(()=>URL.revokeObjectURL(a.href),120000); // 호스트 다운로드 스트리밍 동안 blob 유지
+  if(!HOST){ dirty=false; updateDirty(); toast('편집본을 저장했습니다 (다운로드 폴더)'); }
 });
 $('btnPreviewAll').addEventListener('click',()=>{
   const html=buildFullHTML();
@@ -660,8 +697,11 @@ window.addEventListener('dragover',e=>e.preventDefault());
 window.addEventListener('drop',e=>e.preventDefault());
 
 // ====== 버전 / 버전 이력 ======
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.5.0';
 const CHANGELOG=[
+  {v:'1.5.0',d:'2026-06-23',items:[
+    '설정(⚙) 메뉴 추가 — 편집본 저장 위치 지정(지정 폴더 자동 저장 / 저장 시 위치 선택)',
+    '업데이트 기능 추가 — GitHub Releases에서 새 버전 확인 후 자동 다운로드·설치']},
   {v:'1.4.0',d:'2026-06-23',items:['Windows 설치 프로그램(Setup) 추가 — 시작 메뉴·바탕화면 바로가기, 제거(언인스톨) 지원']},
   {v:'1.3.0',d:'2026-06-23',items:['프로그램에 버전 표시 및 버전 이력(앱 내 보기) 추가']},
   {v:'1.2.0',d:'2026-06-23',items:[
@@ -689,10 +729,76 @@ const CHANGELOG=[
   $('logModal').addEventListener('click',function(e){ if(e.target===$('logModal')) $('logModal').classList.remove('on'); });
 })();
 
+// ====== 설정 / 업데이트 (호스트 EXE 연동) ======
+const HOST=(window.chrome && window.chrome.webview) ? window.chrome.webview : null;
+let cfg={saveMode:'ask', saveFolder:'', version:APP_VERSION};
+function hostPost(o){ if(HOST){ try{ HOST.postMessage(JSON.stringify(o)); }catch(_){} } }
+function escapeHtml(s){ return String(s).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':(c==='<'?'&lt;':'&gt;');}); }
+
+if(HOST){
+  HOST.addEventListener('message',function(e){
+    let m; try{ m=(typeof e.data==='string')?JSON.parse(e.data):e.data; }catch(_){ return; }
+    if(!m||!m.t) return;
+    if(m.t==='cfg'){ cfg=m; renderSettings(); }
+    else if(m.t==='saved'){ dirty=false; updateDirty(); toast('저장됨: '+m.path); }
+    else if(m.t==='upd'){ onUpdInfo(m); }
+    else if(m.t==='updStatus'){ onUpdStatus(m.msg); }
+  });
+}
+
+function renderSettings(){
+  const r=document.querySelector('input[name="saveMode"][value="'+(cfg.saveMode||'ask')+'"]'); if(r) r.checked=true;
+  $('setFolderPath').textContent=cfg.saveFolder?cfg.saveFolder:'(폴더 미지정)';
+  $('curVerText').textContent='현재 버전 v'+(cfg.version||APP_VERSION);
+  const on=!!HOST;
+  $('saveHostHint').textContent=on?'':'※ 저장 위치 지정·자동 업데이트는 설치형 앱(EXE)에서 동작합니다. 브라우저에서는 다운로드 폴더에 저장됩니다.';
+  $('btnPickFolder').disabled=!on;
+  document.querySelectorAll('input[name="saveMode"]').forEach(function(x){ x.disabled=!on; });
+}
+function openSettings(){
+  if(HOST) hostPost({t:'getCfg'}); else renderSettings();
+  $('setModal').classList.add('on');
+}
+$('btnSettings').addEventListener('click',openSettings);
+$('setClose').addEventListener('click',function(){ $('setModal').classList.remove('on'); });
+$('setModal').addEventListener('click',function(e){ if(e.target===$('setModal')) $('setModal').classList.remove('on'); });
+document.querySelectorAll('input[name="saveMode"]').forEach(function(x){
+  x.addEventListener('change',function(){ if(HOST&&x.checked) hostPost({t:'setSaveMode',mode:x.value}); });
+});
+$('btnPickFolder').addEventListener('click',function(){ if(HOST) hostPost({t:'pickFolder'}); });
+$('btnCheckUpd').addEventListener('click',function(){
+  if(!HOST){ $('updBox').textContent='업데이트는 설치형 앱(EXE)에서 동작합니다.'; return; }
+  $('updBox').textContent='업데이트 확인 중…'; hostPost({t:'checkUpdate'});
+});
+
+function onUpdInfo(m){
+  const box=$('updBox');
+  if(m.error){ box.textContent='확인 실패: '+m.error; return; }
+  if(m.hasUpdate){
+    let h='<b style="color:var(--red-l)">새 버전 v'+m.latest+' 가 있습니다.</b> (현재 v'+m.current+')';
+    if(m.notes) h+='<div class="notes">'+escapeHtml(m.notes)+'</div>';
+    h+='<div class="doupd"><button class="btn primary" id="btnDoUpd">지금 업데이트 (자동 설치)</button></div>';
+    box.innerHTML=h;
+    $('btnDoUpd').addEventListener('click',function(){
+      hostPost({t:'doUpdate',url:m.url});
+      box.textContent='새 버전 다운로드 중… 완료되면 설치가 시작되고 앱이 종료됩니다.';
+    });
+    if(!$('setModal').classList.contains('on')) toast('새 버전 v'+m.latest+' 사용 가능 — ⚙ 설정에서 업데이트');
+  } else {
+    box.textContent='최신 버전입니다. (v'+m.current+')';
+  }
+}
+function onUpdStatus(s){
+  $('updBox').textContent=(s==='downloading')?'새 버전 다운로드 중… 완료되면 설치가 시작되고 앱이 종료됩니다.':s;
+}
+
+// 시작 시: 설정 동기화 + 조용한 업데이트 확인
+if(HOST){ hostPost({t:'getCfg'}); setTimeout(function(){ hostPost({t:'checkUpdate'}); },1800); }
+
 // ====== 기타 ======
 window.addEventListener('resize',fitScale);
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape') $('logModal').classList.remove('on');
+  if(e.key==='Escape'){ $('logModal').classList.remove('on'); $('setModal').classList.remove('on'); }
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); if(reportDoc) $('btnSave').click(); }
 });
 </script>
