@@ -1,0 +1,13 @@
+# 빌드 임시 산출물 (WebView2 SDK 다운로드/추출 등)
+_build/
+*.zip
+
+# 런타임 데이터 (WebView2 사용자 데이터 폴더)
+WebView2Data/
+
+# OS / 에디터
+Thumbs.db
+desktop.ini
+.DS_Store
+.vs/
+*.user
