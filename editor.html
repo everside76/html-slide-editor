@@ -22,6 +22,25 @@
   .topbar .fname{font-size:13px;color:var(--muted);max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .topbar .spacer{flex:1;}
   .topbar .dirty{color:var(--warn);font-size:13px;font-weight:700;display:none;}
+  .verbadge{margin-left:10px;background:#3a2220;color:#ff9a90;border:1px solid #5a3a34;border-radius:999px;
+    padding:2px 10px;font-size:11.5px;font-weight:800;cursor:pointer;letter-spacing:.3px;}
+  .verbadge:hover{background:#4a2a26;color:#ffb3ac;}
+  .modal-ov{position:fixed;inset:0;background:rgba(10,12,16,.62);display:none;align-items:center;justify-content:center;z-index:10000;}
+  .modal-ov.on{display:flex;}
+  .modal{width:min(540px,92vw);max-height:82vh;overflow:auto;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.55);}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);
+    font-size:16px;font-weight:800;color:#fff;position:sticky;top:0;background:var(--panel);}
+  .modal-h button{background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;}
+  .modal-h button:hover{color:#fff;}
+  .modal-b{padding:6px 20px 18px;}
+  .veritem{padding:14px 0;border-bottom:1px solid var(--line);}
+  .veritem:last-child{border-bottom:0;}
+  .veritem .vh{display:flex;align-items:baseline;gap:10px;margin-bottom:7px;}
+  .veritem .vv{font-size:15px;font-weight:800;color:var(--red-l);}
+  .veritem .vd{font-size:12px;color:var(--muted);}
+  .veritem ul{margin:0;padding-left:18px;}
+  .veritem li{font-size:13px;color:var(--txt);line-height:1.55;margin-bottom:3px;}
   .btn{border:1px solid var(--line);background:var(--panel2);color:var(--txt);border-radius:8px;
     padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
   .btn:hover{border-color:#56607a;background:#353c4f;}
@@ -112,7 +131,7 @@
 
 <!-- 상단 바 -->
 <div class="topbar">
-  <div class="logo"><span class="dot"></span>HTML 보고서 에디터</div>
+  <div class="logo"><span class="dot"></span>HTML 보고서 에디터<button class="verbadge" id="verBadge" title="버전 이력 보기">v0.0.0</button></div>
   <span class="fname" id="fnameLabel"></span>
   <span class="dirty" id="dirtyTag">● 저장 안 된 변경사항</span>
   <span class="spacer" style="flex:1"></span>
@@ -222,6 +241,14 @@
 <input type="file" id="fileInput" accept=".html,.htm,text/html" style="display:none">
 <input type="file" id="imgInput" accept="image/*" style="display:none">
 <div id="toast" style="position:fixed;left:50%;bottom:72px;transform:translateX(-50%);background:#20242c;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 10px 28px rgba(0,0,0,.4);opacity:0;transition:opacity .2s;pointer-events:none;z-index:9999;"></div>
+
+<!-- 버전 이력 모달 -->
+<div class="modal-ov" id="logModal">
+  <div class="modal">
+    <div class="modal-h"><span>버전 이력</span><button id="logClose" title="닫기">✕</button></div>
+    <div class="modal-b" id="logBody"></div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -632,9 +659,39 @@ drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleF
 window.addEventListener('dragover',e=>e.preventDefault());
 window.addEventListener('drop',e=>e.preventDefault());
 
+// ====== 버전 / 버전 이력 ======
+const APP_VERSION='1.3.0';
+const CHANGELOG=[
+  {v:'1.3.0',d:'2026-06-23',items:['프로그램에 버전 표시 및 버전 이력(앱 내 보기) 추가']},
+  {v:'1.2.0',d:'2026-06-23',items:[
+    '표 편집: 표 삽입(행×열), 행 추가(위/아래)·삭제, 열 추가(왼/오)·삭제, 셀 배경색, 표 전체 삭제',
+    '이미지 편집: 커서 위치 삽입, 선택 이미지 교체, 크기 조절(크게/작게), 삭제']},
+  {v:'1.1.0',d:'2026-06-23',items:['앱 아이콘 추가 (겹친 슬라이드 + 빨간 헤더 + 연필)']},
+  {v:'1.0.0',d:'2026-06-23',items:[
+    '최초 릴리스 — 페이지 단위 HTML 보고서 에디터',
+    'WYSIWYG·소스 편집, 페이지 이동/추가/복제/삭제/순서변경',
+    '원본 디자인·이미지 보존, 편집본 저장, 전체 미리보기',
+    '단일 실행 EXE (WebView2 내장)']},
+];
+(function initVersion(){
+  $('verBadge').textContent='v'+APP_VERSION;
+  document.title='HTML 보고서 에디터 v'+APP_VERSION+' · 페이지 단위 편집';
+  let h='';
+  CHANGELOG.forEach(function(r){
+    h+='<div class="veritem"><div class="vh"><span class="vv">v'+r.v+'</span><span class="vd">'+r.d+'</span></div><ul>';
+    r.items.forEach(function(it){ h+='<li>'+it+'</li>'; });
+    h+='</ul></div>';
+  });
+  $('logBody').innerHTML=h;
+  $('verBadge').addEventListener('click',function(){ $('logModal').classList.add('on'); });
+  $('logClose').addEventListener('click',function(){ $('logModal').classList.remove('on'); });
+  $('logModal').addEventListener('click',function(e){ if(e.target===$('logModal')) $('logModal').classList.remove('on'); });
+})();
+
 // ====== 기타 ======
 window.addEventListener('resize',fitScale);
 document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') $('logModal').classList.remove('on');
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); if(reportDoc) $('btnSave').click(); }
 });
 </script>

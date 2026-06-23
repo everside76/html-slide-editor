@@ -1,5 +1,7 @@
 # HTML Slide Editor
 
+![version](https://img.shields.io/badge/version-1.3.0-C0392B) · 현재 버전 **v1.3.0** · [변경 이력](CHANGELOG.md)
+
 슬라이드/페이지 단위로 구성된 **HTML 보고서를 페이지별로 편집**하는 Windows 데스크톱 에디터입니다.
 오른쪽에 보고서가 실제 모양 그대로 렌더링되고, 화면의 글자를 직접 클릭해 수정(WYSIWYG)할 수 있습니다.
 
