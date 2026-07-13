@@ -16,8 +16,8 @@ using Microsoft.Web.WebView2.Core;
 [assembly: System.Reflection.AssemblyProduct("HTML Slide Editor")]
 [assembly: System.Reflection.AssemblyCompany("everside76")]
 [assembly: System.Reflection.AssemblyCopyright("MIT License")]
-[assembly: System.Reflection.AssemblyVersion("1.5.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.5.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.6.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.6.0.0")]
 
 namespace HtmlSlideEditor
 {
@@ -26,7 +26,7 @@ namespace HtmlSlideEditor
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern bool SetDllDirectory(string lpPathName);
 
-        public const string Version = "1.5.0";
+        public const string Version = "1.6.0";
         const string AppName = "HTML 보고서 에디터";
         static string AppDir;
 

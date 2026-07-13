@@ -3,6 +3,13 @@
 이 프로젝트의 모든 주요 변경 사항을 기록합니다.
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를, 버전은 [유의적 버전(SemVer)](https://semver.org/lang/ko/)을 따릅니다.
 
+## [1.6.0] - 2026-07-13
+### Added
+- **문서 모드** 추가 — 슬라이드 구조(`.slide` / `.slide-wrap` / `.deck`)가 아닌 **일반 HTML 보고서**도 편집 가능
+  - 여는 파일에 슬라이드 구조가 없으면 자동으로 문서 모드로 전환
+  - 왼쪽 사이드바가 **문서 개요(TOC)** 로 바뀌어 제목(`h1`·`h2`·`h3`)으로 문서를 탐색, 이전/다음으로 섹션 이동
+  - 전체 문서를 한 화면에서 WYSIWYG·소스로 편집(기존 서식·표·이미지 도구 그대로 사용)
+
 ## [1.5.0] - 2026-06-23
 ### Added
 - **설정(⚙) 메뉴** 추가 — 편집본 저장 위치 지정
@@ -42,6 +49,7 @@
 - 원본 디자인·이미지 보존, 편집본 저장(`_편집본.html`), 전체 미리보기
 - 단일 실행 EXE (WebView2 내장, 무설치)
 
+[1.6.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.6.0
 [1.5.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.5.0
 [1.4.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/everside76/html-slide-editor/releases/tag/v1.3.0

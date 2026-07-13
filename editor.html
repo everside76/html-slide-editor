@@ -165,10 +165,10 @@
     <button class="btn primary" id="btnOpen">📂 HTML 파일 열기</button>
   </div>
   <div class="hint">
-    이 에디터는 <b>슬라이드/페이지 단위 HTML 보고서</b>(각 페이지가 <code>.slide</code> 또는
-    <code>.slide-wrap</code> 인 형식)에 맞춰 동작합니다.<br>
-    오른쪽 화면에서 글자를 직접 클릭해 수정하고(WYSIWYG), 왼쪽에서 페이지를 이동·추가·삭제할 수 있습니다.
-    편집이 끝나면 <b>편집본 저장</b>으로 새 HTML 파일을 내려받습니다.
+    이 에디터는 <b>슬라이드형 보고서와 일반 HTML 문서 모두 지원</b>합니다.<br>
+    슬라이드형(각 페이지가 <code>.slide</code>·<code>.slide-wrap</code>·<code>.deck</code>)은 페이지 단위로,
+    일반 HTML 문서는 <b>문서 개요</b>(제목)로 탐색하며 전체를 편집할 수 있습니다.<br>
+    오른쪽 화면에서 글자를 직접 클릭해 수정하고(WYSIWYG), 편집이 끝나면 <b>편집본 저장</b>으로 새 HTML 파일을 내려받습니다.
   </div>
 </div>
 
@@ -176,7 +176,7 @@
 <div class="app" id="appUI">
   <!-- 사이드바 -->
   <aside class="side">
-    <div class="shead"><span>페이지 목록</span><span id="pageCount"></span></div>
+    <div class="shead"><span id="sideHeadTitle">페이지 목록</span><span id="pageCount"></span></div>
     <div class="pages" id="pageList"></div>
     <div class="pageops">
       <button class="btn" id="opDup">＋ 현재 페이지 복제</button>
@@ -292,6 +292,7 @@
 // ====== 상태 ======
 let reportDoc=null, pageEls=[], currentIndex=-1, mode='wysiwyg', dirty=false, fileName='report.html', savedRange=null;
 let selectedImg=null, imgMode='insert', toastTimer=null;
+let docMode='slides', sectionIndex=0, docFrameReady=false;
 
 // ====== DOM 참조 ======
 const $=id=>document.getElementById(id);
@@ -311,27 +312,63 @@ function handleFile(file){
 }
 function loadFromText(text){
   reportDoc=new DOMParser().parseFromString(text,'text/html');
-  pageEls=pickPages(reportDoc);
-  if(!pageEls.length){
-    alert('편집 가능한 페이지를 찾지 못했습니다.\n각 페이지가 .slide / .slide-wrap 또는 .deck 의 직속 요소여야 합니다.');
-    return;
+  // 공통 상태 리셋 (슬라이드↔문서 전환 시 깨끗이 초기화)
+  currentIndex=-1; sectionIndex=0; docFrameReady=false; dirty=false; updateDirty();
+  selectedImg=null; savedRange=null;
+  mode='wysiwyg';
+  $('btnMode').innerHTML='&lt;/&gt; 소스 편집';
+  sourceWrap.style.display='none'; stageWrap.style.display='flex';
+
+  // 모드 감지: .slide-wrap / .slide / .deck 이 하나라도 있으면 슬라이드, 없으면 문서
+  const hasSlides=reportDoc.querySelector('.slide-wrap, .slide, .deck');
+  if(hasSlides){
+    docMode='slides';
+    pageEls=pickPages(reportDoc);
+    if(!pageEls.length){
+      alert('편집 가능한 페이지를 찾지 못했습니다.\n각 페이지가 .slide / .slide-wrap 또는 .deck 의 직속 요소여야 합니다.');
+      return;
+    }
+  } else {
+    const body=reportDoc.body;
+    const hasContent=body && [...body.children].filter(n=>n.nodeType===1).length>0;
+    if(!hasContent){
+      alert('편집 가능한 내용을 찾지 못했습니다.\n문서 본문에 요소가 없습니다.');
+      return;
+    }
+    docMode='document';
+    pageEls=[];
   }
-  currentIndex=-1; dirty=false; updateDirty();
+
   emptyState.style.display='none'; appUI.classList.add('on');
   $('btnSave').style.display='inline-flex';
   $('btnPreviewAll').style.display='inline-flex';
   $('btnOpen2').style.display='inline-flex';
   fnameLabel.textContent=fileName;
-  pageCount.textContent=pageEls.length+'p';
-  renderPageList();
-  selectPage(0);
+
+  if(docMode==='slides'){
+    $('sideHeadTitle').textContent='페이지 목록';
+    setPageOpsEnabled(true);
+    pageCount.textContent=pageEls.length+'p';
+    renderPageList();
+    selectPage(0);
+  } else {
+    $('sideHeadTitle').textContent='문서 개요';
+    setPageOpsEnabled(false);
+    const n=docHeadingEls().length;
+    pageCount.textContent=(n||1)+'개 섹션';
+    renderDocToc();
+    renderDocPreview();
+    updateNav();
+  }
 }
 function pickPages(doc){
   let els=[...doc.querySelectorAll('.slide-wrap')];
   if(!els.length) els=[...doc.querySelectorAll('section.slide, div.slide, .slide')];
   if(!els.length){ const deck=doc.querySelector('.deck'); if(deck) els=[...deck.children]; }
-  if(!els.length){ const b=doc.body; if(b) els=[...b.children].filter(n=>n.nodeType===1); }
   return els;
+}
+function setPageOpsEnabled(on){
+  ['opDup','opDel','opUp','opDown'].forEach(function(id){ $(id).disabled=!on; });
 }
 
 // ====== 페이지 목록 ======
@@ -373,6 +410,7 @@ function selectPage(i){
   updateNav(); highlightList();
 }
 function renderPreview(){
+  frame.style.width=''; frame.style.height=''; // 문서 모드에서 넣은 인라인 크기 초기화
   const head=reportDoc.head?reportDoc.head.innerHTML:'';
   const pageHTML=pageEls[currentIndex].outerHTML;
   const docHTML='<!DOCTYPE html><html lang="ko"><head>'+head+
@@ -419,9 +457,108 @@ function fitScale(){
   zoomLabel.textContent=Math.round(s*100)+'%';
 }
 
+// ====== 문서 모드 ======
+function docHeadingEls(){
+  return (reportDoc&&reportDoc.body)?[...reportDoc.body.querySelectorAll('h1,h2,h3')]:[];
+}
+function frameHeadings(){
+  const d=frame.contentDocument;
+  return (d&&d.body)?[...d.body.querySelectorAll('h1,h2,h3')]:[];
+}
+function renderDocToc(){
+  pageList.innerHTML='';
+  const hs=docHeadingEls();
+  if(!hs.length){
+    const item=document.createElement('div');
+    item.className='pitem'+(sectionIndex===0?' cur':'');
+    const tx=document.createElement('div'); tx.className='ptxt'; tx.textContent='(문서 전체)';
+    item.appendChild(tx);
+    item.addEventListener('click',function(){ selectSection(0); });
+    pageList.appendChild(item);
+    return;
+  }
+  hs.forEach(function(h,i){
+    const lvl=parseInt(h.tagName.charAt(1),10)||1;
+    const item=document.createElement('div');
+    item.className='pitem'+(i===sectionIndex?' cur':'');
+    const tx=document.createElement('div'); tx.className='ptxt';
+    tx.textContent=(h.textContent||'').replace(/\s+/g,' ').trim().slice(0,80)||'(제목 없음)';
+    tx.style.paddingLeft=((lvl-1)*14)+'px';
+    tx.style.fontWeight=(lvl===1)?'800':'500';
+    item.appendChild(tx);
+    item.addEventListener('click',function(){ selectSection(i); });
+    pageList.appendChild(item);
+  });
+}
+function highlightDocList(){
+  const kids=pageList.children;
+  for(let i=0;i<kids.length;i++) kids[i].classList.toggle('cur',i===sectionIndex);
+  const cur=kids[sectionIndex];
+  if(cur) cur.scrollIntoView({block:'nearest'});
+}
+function selectSection(i){
+  if(!docFrameReady) return; // iframe 로드 전 클릭은 무시 (현재 상태 유지)
+  const hs=frameHeadings();
+  if(!hs.length) return;     // 헤딩 없는 문서: 이동 대상 없음 (sectionIndex 유지)
+  if(i<0) i=0; if(i>=hs.length) i=hs.length-1;
+  sectionIndex=i;
+  try{ hs[i].scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){ hs[i].scrollIntoView(); }
+  highlightDocList(); updateNav();
+}
+function renderDocPreview(){
+  docFrameReady=false; // srcdoc 로드 완료 전에는 commit/섹션 이동 금지
+  const head=reportDoc.head?reportDoc.head.innerHTML:'';
+  const body=reportDoc.body?reportDoc.body.innerHTML:'';
+  const lang=(reportDoc.documentElement&&reportDoc.documentElement.getAttribute('lang'))||'ko';
+  const editCss='<style id="__editcss">body{cursor:text}[contenteditable]:focus{outline:none}'+
+    'img{cursor:pointer}.__imgsel{outline:3px solid #C0392B!important;outline-offset:2px}</style>';
+  const docHTML='<!DOCTYPE html><html lang="'+lang+'"><head>'+head+editCss+
+    '</head><body contenteditable="true" spellcheck="false">'+body+'</body></html>';
+  frame.onload=onDocFrameLoad;
+  frame.srcdoc=docHTML;
+}
+function onDocFrameLoad(){
+  const d=frame.contentDocument; if(!d) return;
+  selectedImg=null;
+  d.addEventListener('input',markDirty);
+  d.addEventListener('selectionchange',saveSel);
+  d.addEventListener('click',onFrameClick);
+  try{ d.execCommand('styleWithCSS',false,true); }catch(_){}
+  fitDoc();
+  docFrameReady=true;
+}
+function fitDoc(){
+  const r=stage.getBoundingClientRect();
+  const w=Math.max(320,r.width-40), h=Math.max(240,r.height-40);
+  frame.style.transform='none';
+  frame.style.width=w+'px';   frame.style.height=h+'px';
+  framebox.style.width=w+'px'; framebox.style.height=h+'px';
+  zoomLabel.textContent='100%';
+}
+function cleanEditHtml(html){
+  return html
+    .replace(/\scontenteditable="[^"]*"/gi,'')
+    .replace(/\sspellcheck="[^"]*"/gi,'')
+    .replace(/\sclass="__imgsel"/gi,'')
+    .replace(/(\sclass="[^"]*?)\s*__imgsel\s*([^"]*")/gi,'$1$2');
+}
+
 // ====== 커밋(편집내용 반영) ======
 function commitCurrent(){
-  if(currentIndex<0||!reportDoc) return;
+  if(!reportDoc) return;
+  if(docMode==='document'){
+    if(mode==='wysiwyg'){
+      if(!docFrameReady) return; // iframe 로드 전(과도기 빈 문서) 커밋 금지 — reportDoc 은 원본 그대로 유지
+      const d=frame.contentDocument; if(!d||!d.body) return;
+      Array.prototype.forEach.call(d.querySelectorAll('.__imgsel'),function(el){ el.classList.remove('__imgsel'); });
+      selectedImg=null;
+      reportDoc.body.innerHTML=cleanEditHtml(d.body.innerHTML);
+    } else {
+      reportDoc.body.innerHTML=sourceArea.value;
+    }
+    return;
+  }
+  if(currentIndex<0) return;
   let html;
   if(mode==='wysiwyg'){
     const d=frame.contentDocument; if(!d) return;
@@ -430,11 +567,7 @@ function commitCurrent(){
     if(!page) return;
     Array.prototype.forEach.call(d.querySelectorAll('.__imgsel'),function(el){ el.classList.remove('__imgsel'); });
     selectedImg=null;
-    html=page.outerHTML
-      .replace(/\scontenteditable="[^"]*"/gi,'')
-      .replace(/\sspellcheck="[^"]*"/gi,'')
-      .replace(/\sclass="__imgsel"/gi,'')
-      .replace(/(\sclass="[^"]*?)\s*__imgsel\s*([^"]*")/gi,'$1$2');
+    html=cleanEditHtml(page.outerHTML);
   } else {
     html=sourceArea.value;
   }
@@ -616,8 +749,19 @@ $('btnMode').addEventListener('click',()=>{
   commitCurrent();
   mode=(mode==='wysiwyg')?'source':'wysiwyg';
   $('btnMode').innerHTML=(mode==='wysiwyg')?'&lt;/&gt; 소스 편집':'👁 화면 편집';
-  if(mode==='source'){ stageWrap.style.display='none'; sourceWrap.style.display='flex'; sourceArea.value=pageEls[currentIndex].outerHTML; }
-  else { sourceWrap.style.display='none'; stageWrap.style.display='flex'; renderPreview(); }
+  if(mode==='source'){
+    stageWrap.style.display='none'; sourceWrap.style.display='flex';
+    sourceArea.value=(docMode==='document')?reportDoc.body.innerHTML:pageEls[currentIndex].outerHTML;
+  } else {
+    sourceWrap.style.display='none'; stageWrap.style.display='flex';
+    if(docMode==='document'){
+      const n=docHeadingEls().length;
+      pageCount.textContent=(n||1)+'개 섹션';
+      renderDocToc(); renderDocPreview(); updateNav();
+    } else {
+      renderPreview();
+    }
+  }
 });
 sourceArea.addEventListener('input',markDirty);
 
@@ -651,9 +795,19 @@ function movePage(dir){
 }
 
 // ====== 네비게이션 ======
-$('prevBtn').addEventListener('click',()=>selectPage(currentIndex-1));
-$('nextBtn').addEventListener('click',()=>selectPage(currentIndex+1));
+$('prevBtn').addEventListener('click',()=>{ if(docMode==='document') selectSection(sectionIndex-1); else selectPage(currentIndex-1); });
+$('nextBtn').addEventListener('click',()=>{ if(docMode==='document') selectSection(sectionIndex+1); else selectPage(currentIndex+1); });
 function updateNav(){
+  if(docMode==='document'){
+    const n=docHeadingEls().length;
+    if(n<=0){ posLabel.textContent='1 / 1'; $('prevBtn').disabled=true; $('nextBtn').disabled=true; }
+    else{
+      posLabel.textContent='섹션 '+(sectionIndex+1)+' / '+n;
+      $('prevBtn').disabled=sectionIndex<=0;
+      $('nextBtn').disabled=sectionIndex>=n-1;
+    }
+    return;
+  }
   posLabel.textContent=(currentIndex+1)+' / '+pageEls.length;
   $('prevBtn').disabled=currentIndex<=0;
   $('nextBtn').disabled=currentIndex>=pageEls.length-1;
@@ -697,8 +851,10 @@ window.addEventListener('dragover',e=>e.preventDefault());
 window.addEventListener('drop',e=>e.preventDefault());
 
 // ====== 버전 / 버전 이력 ======
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const CHANGELOG=[
+  {v:'1.6.0',d:'2026-07-13',items:[
+    '문서 모드 추가 — 슬라이드 구조가 아닌 일반 HTML 보고서도 편집 가능(문서 개요 탐색, 전체 문서 편집)']},
   {v:'1.5.0',d:'2026-06-23',items:[
     '설정(⚙) 메뉴 추가 — 편집본 저장 위치 지정(지정 폴더 자동 저장 / 저장 시 위치 선택)',
     '업데이트 기능 추가 — GitHub Releases에서 새 버전 확인 후 자동 다운로드·설치']},
@@ -796,7 +952,8 @@ function onUpdStatus(s){
 if(HOST){ hostPost({t:'getCfg'}); setTimeout(function(){ hostPost({t:'checkUpdate'}); },1800); }
 
 // ====== 기타 ======
-window.addEventListener('resize',fitScale);
+function onResize(){ if(docMode==='document') fitDoc(); else fitScale(); }
+window.addEventListener('resize',onResize);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){ $('logModal').classList.remove('on'); $('setModal').classList.remove('on'); }
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); if(reportDoc) $('btnSave').click(); }
